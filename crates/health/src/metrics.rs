@@ -246,9 +246,16 @@ impl InventoryEndpointMetrics {
                         .unwrap_or_default()
                         .to_string(),
                 ),
-                Some(EndpointMetadata::PowerShelf(_)) | None => {
-                    (String::new(), String::new(), String::new(), String::new())
-                }
+                Some(EndpointMetadata::PowerShelf(power_shelf)) => (
+                    power_shelf
+                        .nvlink_domain_uuid
+                        .map(|id| id.to_string())
+                        .unwrap_or_default(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                ),
+                None => (String::new(), String::new(), String::new(), String::new()),
             };
             let endpoint_key = endpoint.key();
             let component_type = metadata.map_or("unknown", EndpointMetadata::component_type);
@@ -1001,6 +1008,30 @@ mod tests {
         inventory.reconcile(&[Arc::new(switch_host)]);
         let configured_name = manager.export_metrics().unwrap();
         assert!(configured_name.contains("switch_serial=\"gb-nvl-050-switch01\""));
+    }
+
+    #[test]
+    fn inventory_info_preserves_power_shelf_domain_id() {
+        let manager = MetricsManager::new("inventory_shelf_domain").unwrap();
+        let inventory =
+            InventoryEndpointMetrics::new(manager.global_registry(), "inventory_shelf_domain")
+                .unwrap();
+        let mut power_shelf = test_endpoint(mac("02:00:00:00:00:06"));
+        power_shelf.rack_id = Some(RackId::new("rack-1"));
+        power_shelf.metadata = Some(EndpointMetadata::PowerShelf(PowerShelfData {
+            id: None,
+            serial: Some("SHELF-01".to_string()),
+            nvlink_domain_uuid: Some("ec000000-0000-0000-0000-000000000001".parse().unwrap()),
+        }));
+
+        inventory.reconcile(&[Arc::new(power_shelf)]);
+        let body = manager.export_metrics().unwrap();
+        let shelf_line = body
+            .lines()
+            .find(|line| line.contains("inventory_shelf_domain_inventory_endpoint_info{"))
+            .expect("power shelf inventory series should be exported");
+        assert!(shelf_line.contains("component_type=\"power_shelf\""));
+        assert!(shelf_line.contains("domain_id=\"ec000000-0000-0000-0000-000000000001\""));
     }
 
     #[test]
