@@ -242,7 +242,7 @@ impl InventoryEndpointMetrics {
                         .serial
                         .as_deref()
                         .filter(|value| !value.is_empty())
-                        .or_else(|| switch.log_checkpoint_identity.as_deref())
+                        .or(switch.log_checkpoint_identity.as_deref())
                         .unwrap_or_default()
                         .to_string(),
                 ),
