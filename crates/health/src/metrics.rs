@@ -864,12 +864,11 @@ mod tests {
     use carbide_test_support::{Check, check_values};
     use carbide_uuid::rack::RackId;
 
+    use super::*;
     use crate::endpoint::test_support::{mac, test_endpoint};
     use crate::endpoint::{
         EndpointMetadata, MachineData, PowerShelfData, SharedSystemUuid, SwitchData,
     };
-
-    use super::*;
 
     #[test]
     fn inventory_info_tracks_discovered_trays_without_bmc_access() {
